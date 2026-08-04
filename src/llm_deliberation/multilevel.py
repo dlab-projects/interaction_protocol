@@ -62,19 +62,26 @@ def concat_experiments(exp_dicts):
 def build_all_data(sync_exps, sync_model_ids, rr_exps, rr_model_ids,
                    missing_tokens=("", None)):
     all_parts = []
+    debate_offset = 0
+
+    def add_debate_idx(part):
+        nonlocal debate_offset
+        part["debate_idx"] = part["dilemma_idx"].astype(np.int64) + debate_offset
+        debate_offset += int(part["dilemma_idx"].max()) + 1 if len(part["dilemma_idx"]) else 0
+        return part
 
     # --- synchronous (2-way) ---
     for df, mids in zip(sync_exps, sync_model_ids):
         vlists = df_to_verdict_lists(df, n_agents=2)
         part = convert_synchronous(vlists, mids, verdict2num, missing_tokens=missing_tokens)
-        all_parts.append(part)
+        all_parts.append(add_debate_idx(part))
 
     # --- round-robin (2-way & 3-way) ---
     for df, mids in zip(rr_exps, rr_model_ids):
         n_agents = len(mids)
         vlists = df_to_verdict_lists(df, n_agents=n_agents)
         part = convert_round_robin(vlists, mids, verdict2num, missing_tokens=missing_tokens)
-        all_parts.append(part)
+        all_parts.append(add_debate_idx(part))
 
     data = concat_experiments(all_parts)
 
@@ -86,6 +93,7 @@ def build_all_data(sync_exps, sync_model_ids, rr_exps, rr_model_ids,
         "K": K,
         "sync_rows": int(data["is_sync"].sum()),
         "rr_rows": int((~data["is_sync"]).sum()),
+        "debates": int(np.unique(data["debate_idx"]).size) if "debate_idx" in data else 0,
         "round>=2 rows": int((data["round_idx"] >= 2).sum()),
         "same_prev_nonzero (round>=2)": int((data["same_prev_mat"][data["round_idx"] >= 2].sum(axis=1) > 0).sum()),
         "within_nonzero (RR only)": int((data["E_within_mat"][~data["is_sync"]].sum(axis=1) > 0).sum()),
@@ -369,10 +377,6 @@ def fit_map_split(exp, lr=1e-2, epochs=60, batch_size=8192,
     return model
 
 def _subset_by_dilemmas(exp, d_ids):
-    m = np.isin(exp["dilemma_idx"], d_ids)
-    return {k: v[m] for k, v in exp.items()}
-
-def _subset_by_dilemmas(exp, d_ids):
     mask = np.isin(exp["dilemma_idx"], d_ids)
     return {k: v[mask] for k, v in exp.items()}
 
@@ -408,6 +412,185 @@ def bootstrap_split(exp, B=200, epochs=20, batch_size=4096, lr=2e-2, device="cpu
     # confidence intervals for scalars
     ci_gp = np.percentile(gp, [2.5, 50, 97.5])
     ci_gw = np.percentile(gw, [2.5, 50, 97.5])
+    ci_alpha = np.percentile(alpha, [2.5, 50, 97.5], axis=0)
+
+    return {
+        "gamma_prev": gp,
+        "gamma_within": gw,
+        "alpha": alpha,
+        "theta": theta,
+        #"phi": phi,
+        "ci_prev": ci_gp,
+        "ci_within": ci_gw,
+        "ci_alpha": ci_alpha
+    }
+
+
+class DeliberationModelSplitPerModel(nn.Module):
+    def __init__(self, M, D, K=5):
+        """Multinomial logit layer that learns model-specific inertia and conformity effects.
+
+        Attributes
+        ----------
+        theta_raw : torch.nn.Parameter
+            Unconstrained logits for each model × verdict class; row-centered in `forward`
+            to identify model-specific preference shifts.
+        phi_raw : torch.nn.Parameter
+            Unconstrained logits for each dilemma × verdict class; also row-centered to
+            absorb dilemma-specific baselines.
+        alpha : torch.nn.Parameter
+            Per-model coefficient applied to `same_prev_mat`, capturing each model’s tendency
+            to repeat its own most recent verdict (inertia).
+        gamma_prev_m : torch.nn.Parameter
+            Per-model coefficients on `E_prev_mat`, scaling conformity pressure from the
+            other agents’ history prior to the current round.
+        gamma_within_m : torch.nn.Parameter
+            Per-model coefficients on `E_within_mat`, scaling conformity to earlier speakers
+            within the same round.
+
+        forward(mi, di, sp, ep, ew)
+        ---------------------------
+        Row-centers `theta_raw` and `phi_raw`, then combines them with the per-model
+        inertia (`alpha`) and conformity weights (`gamma_prev_m`, `gamma_within_m`) to
+        produce log-softmax-normalized logits for each observation.
+        """
+        super().__init__()
+        self.theta_raw = nn.Parameter(torch.zeros(M, K))
+        self.phi_raw = nn.Parameter(torch.zeros(D, K))
+        self.alpha = nn.Parameter(torch.zeros(M))
+        self.gamma_prev_m = nn.Parameter(torch.zeros(M))
+        self.gamma_within_m = nn.Parameter(torch.zeros(M))
+
+    def forward(self, model_idx, dilemma_idx, same_verd_prev, exposure_prev, exposure_within):
+        theta = self.theta_raw - self.theta_raw.mean(dim=1, keepdim=True)
+        phi = self.phi_raw - self.phi_raw.mean(dim=1, keepdim=True)
+        logits = (
+            theta[model_idx] +
+            phi[dilemma_idx] +
+            self.alpha[model_idx].unsqueeze(1) * same_verd_prev +
+            self.gamma_prev_m[model_idx].unsqueeze(1) * exposure_prev +
+            self.gamma_within_m[model_idx].unsqueeze(1) * exposure_within
+        )
+        return torch.log_softmax(logits, dim=1)
+
+def fit_map_split_per_model(
+    exp,
+    lr=1e-2,
+    epochs=60,
+    batch_size=4096,
+    sigma_theta=1.0,
+    sigma_phi=1.0,
+    sigma_alpha=0.5,
+    sigma_gamma_prev=0.5,
+    sigma_gamma_within=0.5,
+    device=None,
+    seed=0,
+    verbose=False,
+    tol=1e-4,
+    early_stop_patience=10
+):
+    if device is None:
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+    torch.manual_seed(seed)
+
+    # tensors
+    y  = torch.as_tensor(exp["y"], dtype=torch.long, device=device)
+    mi = torch.as_tensor(exp["model_idx"], dtype=torch.long, device=device)
+    di = torch.as_tensor(exp["dilemma_idx"], dtype=torch.long, device=device)
+    sp = torch.as_tensor(exp["same_prev_mat"], dtype=torch.float32, device=device)
+    ep = torch.as_tensor(exp["E_prev_mat"], dtype=torch.float32, device=device)
+    ew = torch.as_tensor(exp["E_within_mat"], dtype=torch.float32, device=device)
+
+    N, K = sp.shape
+    M = int(mi.max().item()) + 1
+    D = int(di.max().item()) + 1
+
+    model = DeliberationModelSplitPerModel(M, D, K=K).to(device)
+    criterion = nn.NLLLoss(reduction='mean')
+    opt = torch.optim.AdamW(model.parameters(), lr=lr)
+
+    dl = DataLoader(TensorDataset(mi, di, sp, ep, ew, y), batch_size=batch_size, shuffle=True)
+
+    best_obj = float("inf")
+    no_improve = 0
+
+    def prior_term():
+        t, p, a = model.theta_raw, model.phi_raw, model.alpha
+        gp_m, gw_m = model.gamma_prev_m, model.gamma_within_m
+        return (
+            t.pow(2).sum()/(2*sigma_theta**2) +
+            p.pow(2).sum()/(2*sigma_phi**2) +
+            a.pow(2).sum()/(2*sigma_alpha**2) +
+            gp_m.pow(2).sum()/(2*sigma_gamma_prev**2) +
+            gw_m.pow(2).sum()/(2*sigma_gamma_within**2)
+        ) / N
+
+    for epoch in range(epochs):
+        model.train()
+        for mi_b, di_b, sp_b, ep_b, ew_b, y_b in dl:
+            logp = model(mi_b, di_b, sp_b, ep_b, ew_b)
+            loss = criterion(logp, y_b) + prior_term()
+            opt.zero_grad(); loss.backward(); opt.step()
+
+        model.eval()
+        with torch.no_grad():
+            logp_all = model(mi, di, sp, ep, ew)
+            nll_val = criterion(logp_all, y).item()
+            obj = nll_val + float(prior_term())
+            gp = model.gamma_prev_m.detach().cpu().numpy()
+            gw = model.gamma_within_m.detach().cpu().numpy()
+
+        if verbose:
+            print(
+                f"epoch {epoch+1:3d}  obj={obj:.6f}  nll={nll_val:.6f}  "
+                f"exp(gamma_prev_m)={np.exp(gp)}  exp(gamma_within_m)={np.exp(gw)}"
+            )
+
+        # simple early stopping on the full objective
+        if obj + tol < best_obj:
+            best_obj = obj
+            no_improve = 0
+        else:
+            no_improve += 1
+            if no_improve >= early_stop_patience:
+                if verbose:
+                    print(f"Early stop at epoch {epoch+1}")
+                break
+
+    return model
+
+def _one_boot_split(args):
+    exp, dilemmas, seed, epochs, batch, lr, device = args
+    rng = np.random.default_rng(seed)
+    draw = rng.choice(dilemmas, size=len(dilemmas), replace=True)
+    boot = _subset_by_dilemmas(exp, draw)
+    m = fit_map_split_per_model(boot, device=device, epochs=epochs, batch_size=batch, lr=lr, seed=seed, verbose=False)
+    return {
+        "gamma_prev": m.gamma_prev_m.detach().cpu().numpy().copy(),
+        "gamma_within": m.gamma_within_m.detach().cpu().numpy().copy(),
+        "alpha": m.alpha.detach().cpu().numpy().copy(),
+        "theta": m.theta_raw.detach().cpu().numpy().copy(),
+        "phi": m.phi_raw.detach().cpu().numpy().copy()
+    }
+
+def bootstrap_model_split(exp, B=200, epochs=20, batch_size=4096, lr=2e-2, device="cpu", n_jobs=None, base_seed=0):
+    dilemmas = np.unique(exp["dilemma_idx"])
+    if n_jobs is None:
+        n_jobs = max(1, mp.cpu_count() - 1)
+    args = [(exp, dilemmas, base_seed + b, epochs, batch_size, lr, device) for b in range(B)]
+    with mp.Pool(processes=n_jobs) as pool:
+        outs = pool.map(_one_boot_split, args)
+
+    # stack results
+    gp = np.array([o["gamma_prev"] for o in outs])
+    gw = np.array([o["gamma_within"] for o in outs])
+    alpha = np.stack([o["alpha"] for o in outs])
+    theta = np.stack([o["theta"] for o in outs])
+    #phi   = np.stack([o["phi"]   for o in outs])
+
+    # confidence intervals for scalars
+    ci_gp = np.percentile(gp, [2.5, 50, 97.5], axis=0)
+    ci_gw = np.percentile(gw, [2.5, 50, 97.5], axis=0)
     ci_alpha = np.percentile(alpha, [2.5, 50, 97.5], axis=0)
 
     return {

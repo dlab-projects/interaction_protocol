@@ -1,3 +1,5 @@
+from collections import Counter
+
 import numpy as np
 import pandas as pd
 
@@ -81,6 +83,49 @@ def jaccard(set1, set2):
     intersection = len(set1.intersection(set2))
     union = len(set1.union(set2))
     return intersection / union if union > 0 else 0.0
+
+
+def jaccard_modified(set1, set2, value2group, weight):
+    """
+    Calculate a modified Jaccard similarity that allows for weighted group matches.
+
+    Parameters
+    ----------
+    set1, set2 : Collection[str]
+        Sets (or iterables convertible to sets) of values to compare.
+    value2group : Mapping[str, Hashable]
+        Mapping from value to a group identifier. Values sharing a group can
+        contribute to a weighted "diluted" intersection when they are not exact matches.
+    weight : float
+        Weight contributed by each group-based match. Must be between 0 and 1.
+
+    Returns
+    -------
+    float
+        Modified Jaccard similarity coefficient in [0, 1].
+    """
+    if not 0.0 <= weight <= 1.0:
+        raise ValueError("weight must be between 0 and 1")
+
+    set1 = set(set1)
+    set2 = set(set2)
+
+    union = len(set1.union(set2))
+    if union == 0:
+        return 0.0
+
+    true_matches = set1.intersection(set2)
+
+    remaining1 = set1.difference(true_matches)
+    remaining2 = set2.difference(true_matches)
+
+    groups1 = Counter(value2group.get(v) for v in remaining1 if value2group.get(v) is not None)
+    groups2 = Counter(value2group.get(v) for v in remaining2 if value2group.get(v) is not None)
+
+    diluted_matches = sum(min(groups1[group], groups2[group]) for group in groups1.keys() & groups2.keys())
+
+    weighted_intersection = len(true_matches) + weight * diluted_matches
+    return weighted_intersection / union
 
 
 def bootstrap_statistic_df(df, statistic_func, n_bootstrap=1000, confidence_level=0.95, random_state=42):

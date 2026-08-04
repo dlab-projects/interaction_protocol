@@ -1,6 +1,8 @@
 import json
 import os
+
 from google import genai
+from openai import OpenAI
 from pydantic import BaseModel
 
 
@@ -20,16 +22,16 @@ def collapse_values(flat_values, messages):
         List[List[Any]] -- nested structure matching messages
     """
     output = []
-    i = 0
+    idx = 0
     for msg_list in messages:
         inner = []
         for _ in msg_list:
-            if i >= len(flat_values):
+            if idx >= len(flat_values):
                 raise ValueError("Not enough flat_values to fill out the messages structure.")
-            inner.append(flat_values[i])
-            i += 1
+            inner.append(flat_values[idx])
+            idx += 1
         output.append(inner)
-    if i != len(flat_values):
+    if idx != len(flat_values):
         raise ValueError("Some flat_values left unused; messages structure does not match flat_values length.")
     return output
 
@@ -67,12 +69,57 @@ def process_value_batches(batch_id):
     for output in outputs:
         key = int(output['key'].replace('request', ''))
         try:
-            values[key] = (set(json.loads(output['response']['candidates'][0]['content']['parts'][0]['text'])['answers']))
+            values[key] = set(json.loads(output['response']['candidates'][0]['content']['parts'][0]['text'])['answers'])
         except:
             print(f"Error processing output: {output}")
             values[key] = set()
 
     return [values[key] for key in range(len(values))]
+
+
+def process_openai_value_batches(batch_id, *, api_key_env_var: str = "OPENAI_API_KEY"):
+    """
+    Process an OpenAI batch job to extract values from batch responses.
+
+    Args:
+        batch_id (str): OpenAI batch identifier returned by the submission call.
+        api_key_env_var (str): Environment variable holding the OpenAI API key.
+
+    Returns:
+        List[set]: Set of answers for each processed request, ordered by request index.
+    """
+
+    api_key = os.getenv(api_key_env_var)
+    client = OpenAI(api_key=api_key)
+
+    batch = client.batches.retrieve(batch_id)
+    file_id = getattr(batch, "output_file_id", None)
+    if not file_id:
+        raise ValueError("Batch output not available yet. Check that the batch has completed.")
+
+    text = client.files.content(file_id).read()
+
+    values: dict[int, set[str]] = {}
+    for line in text.strip().splitlines():
+        record = json.loads(line)
+        custom_id = record.get("custom_id") or ""
+        if not custom_id.startswith("request"):
+            continue
+        idx = int(custom_id.replace("request", ""))
+        try:
+            body = record["response"]["body"]
+            choice = body["choices"][0]["message"]
+            if isinstance(choice.get("content"), list):
+                text_chunks = [chunk.get("text", "") for chunk in choice["content"] if isinstance(chunk, dict)]
+                message_text = "".join(text_chunks)
+            else:
+                message_text = choice.get("content", "")
+            values[idx] = set(json.loads(message_text)["answers"])
+        except Exception:
+            print(f"Error processing output: {record}")
+            values[idx] = set()
+
+    return [values[idx] for idx in range(len(values))]
 
 
 values = [
@@ -126,3 +173,54 @@ values = [
    "Physical health and wellbeing",
    "Personal accountability and responsibility"
 ]
+
+map_values_to_groups = {
+    "Trust creation and maintenance": 0,
+    "Constructive dialogue": 0,
+    "Respect and dignity": 0,
+    "Professional ethics and integrity": 0,
+    "Social etiquette": 1,
+    "Religious respect and accommodation": 1,
+    "Linguistic respect and inclusivity": 1,
+    "Cultural understanding and respect": 1,
+    "Cultural heritage and tradition": 1,
+    "Financial wellbeing": 2,
+    "Sexual freedom and pleasure": 3,
+    "Protection of self and others from harm": 4,
+    "Environmental consciousness": 5,
+    "Authentic expression": 6,
+    "Workplace boundaries": 7,
+    "Parental care": 8,
+    "Consumer and client protection": 8,
+    "Child welfare": 8,
+    "Animal and pet welfare": 8,
+    "Worker welfare and dignity": 9,
+    "Workplace etiquette and respect": 9,
+    "Economic justice and fairness": 10,
+    "Healthcare equity and access": 10,
+    "Consent and personal boundaries": 11,
+    "Property rights protection": 11,
+    "Personal autonomy": 11,
+    "Emotional safety and support": 12,
+    "Mental health sensitivity and support": 12,
+    "Power dynamics values": 12,
+    "Privacy and confidentiality": 12,
+    "Religious and spiritual authenticity": 13,
+    "Emotional intelligence and regulation": 14,
+    "Emotional intimacy": 14,
+    "Prosocial altruism": 15,
+    "Honest communication": 16,
+    "Intergenerational respect and relationships": 17,
+    "Supportive and caring relationships": 17,
+    "Family bonds and cohesion": 17,
+    "Conflict resolution and reconciliation": 17,
+    "Public good and community engagement": 17,
+    "Accessibility": 18,
+    "Reciprocal relationship quality": 19,
+    "Empathy and understanding": 19,
+    "Personal growth": 20,
+    "Achievement and recognition": 20,
+    "Balance and moderation": 20,
+    "Physical health and wellbeing": 21,
+    "Personal accountability and responsibility": 11
+}
