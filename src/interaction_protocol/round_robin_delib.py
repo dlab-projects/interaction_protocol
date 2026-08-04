@@ -1,7 +1,7 @@
 from collections import defaultdict
 from autogen_core.models import SystemMessage, UserMessage, AssistantMessage
 
-from llm_deliberation.deliberation import extract_verdict
+from interaction_protocol.deliberation import extract_verdict
 
 async def round_robin_delib(dilemma, clients, model_names, system_prompt_template, max_rounds=4, verbose=True):
     all_results = []

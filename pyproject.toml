@@ -1,5 +1,5 @@
 [project]
-name = "llm_deliberation"
+name = "interaction_protocol"
 version = "0.0.1"
 description = "Value Assessment of LLMs in Deliberation"
 readme = "README.md"

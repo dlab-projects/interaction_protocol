@@ -7,7 +7,7 @@ from google.genai import types
 from outlines import Template
 from pyprojroot import here
 
-from llm_deliberation.values import Values
+from interaction_protocol.values import Values
 
 AGENT = 2
 SYSTEM_PROMPT = here("prompts/identify_values_dilemma.txt")

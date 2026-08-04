@@ -1,6 +1,6 @@
 import pytest  # type: ignore
 
-from llm_deliberation.utils import jaccard_modified
+from interaction_protocol.utils import jaccard_modified
 
 
 def test_jaccard_modified_returns_zero_for_empty_union():

@@ -4,7 +4,7 @@ from collections import defaultdict
 from autogen_core.models import AssistantMessage, SystemMessage, UserMessage
 from loguru import logger  # pyright: ignore[reportMissingImports]
 
-from llm_deliberation.deliberation import extract_verdict
+from interaction_protocol.deliberation import extract_verdict
 
 
 async def sync_delib(dilemma, clients, model_names, system_prompt_template, max_rounds=4, verbose=False):

@@ -8,7 +8,7 @@ from outlines import Template
 from pyprojroot import here
 from tqdm import tqdm
 
-from llm_deliberation.sync_delib import sync_delib
+from interaction_protocol.sync_delib import sync_delib
 
 
 # ── config ───────────────────────────────────────────────────────────────────

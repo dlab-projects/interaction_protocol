@@ -1299,6 +1299,75 @@ wheels = [
 ]
 
 [[package]]
+name = "interaction-protocol"
+version = "0.0.1"
+source = { editable = "." }
+dependencies = [
+    { name = "aim" },
+    { name = "anthropic" },
+    { name = "autogen" },
+    { name = "autogen-agentchat" },
+    { name = "autogen-ext", extra = ["azure", "openai"] },
+    { name = "chz" },
+    { name = "datasets" },
+    { name = "google-genai" },
+    { name = "jupyter" },
+    { name = "jupyterlab" },
+    { name = "lab" },
+    { name = "loguru" },
+    { name = "matplotlib" },
+    { name = "mpl-lego" },
+    { name = "numpy" },
+    { name = "outlines" },
+    { name = "pandas" },
+    { name = "plotly" },
+    { name = "pyprojroot" },
+    { name = "pyqt6" },
+    { name = "scipy" },
+    { name = "seaborn" },
+    { name = "statsmodels" },
+    { name = "torch" },
+    { name = "transformers" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "aim", specifier = ">=3.29.1" },
+    { name = "anthropic", specifier = ">=0.60.0" },
+    { name = "autogen", specifier = ">=0.9.7" },
+    { name = "autogen-agentchat", specifier = ">=0.7.1" },
+    { name = "autogen-ext", extras = ["azure", "openai"], specifier = ">=0.7.1" },
+    { name = "chz", specifier = ">=0.3.0" },
+    { name = "datasets", specifier = ">=4.0.0" },
+    { name = "google-genai", specifier = ">=1.28.0" },
+    { name = "jupyter", specifier = ">=1.1.1" },
+    { name = "jupyterlab", specifier = ">=4.4.5" },
+    { name = "lab", specifier = ">=8.4" },
+    { name = "loguru", specifier = ">=0.7.3" },
+    { name = "matplotlib", specifier = ">=3.10.3" },
+    { name = "mpl-lego" },
+    { name = "numpy", specifier = ">=2.2.6" },
+    { name = "outlines", specifier = ">=1.1.1" },
+    { name = "pandas", specifier = ">=2.3.1" },
+    { name = "plotly", specifier = ">=6.3.0" },
+    { name = "pyprojroot", specifier = ">=0.3.0" },
+    { name = "pyqt6", specifier = ">=6.9.1" },
+    { name = "scipy", specifier = ">=1.15.3" },
+    { name = "seaborn", specifier = ">=0.13.2" },
+    { name = "statsmodels", specifier = ">=0.14.5" },
+    { name = "torch", specifier = ">=2.7.1" },
+    { name = "transformers", specifier = ">=4.54.1" },
+]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest", specifier = ">=9.0.1" }]
+
+[[package]]
 name = "interegular"
 version = "0.3.3"
 source = { registry = "https://pypi.org/simple" }
@@ -1843,75 +1912,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/af/60/bc7622aefb2aee1c0
 wheels = [
     { url = "https://files.pythonhosted.org/packages/2d/00/d90b10b962b4277f5e64a78b6609968859ff86889f5b898c1a778c06ec00/lark-1.2.2-py3-none-any.whl", hash = "sha256:c2276486b02f0f1b90be155f2c8ba4a8e194d42775786db622faccd652d8e80c", size = 111036, upload-time = "2024-08-13T19:48:58.603Z" },
 ]
-
-[[package]]
-name = "llm-deliberation"
-version = "0.0.1"
-source = { editable = "." }
-dependencies = [
-    { name = "aim" },
-    { name = "anthropic" },
-    { name = "autogen" },
-    { name = "autogen-agentchat" },
-    { name = "autogen-ext", extra = ["azure", "openai"] },
-    { name = "chz" },
-    { name = "datasets" },
-    { name = "google-genai" },
-    { name = "jupyter" },
-    { name = "jupyterlab" },
-    { name = "lab" },
-    { name = "loguru" },
-    { name = "matplotlib" },
-    { name = "mpl-lego" },
-    { name = "numpy" },
-    { name = "outlines" },
-    { name = "pandas" },
-    { name = "plotly" },
-    { name = "pyprojroot" },
-    { name = "pyqt6" },
-    { name = "scipy" },
-    { name = "seaborn" },
-    { name = "statsmodels" },
-    { name = "torch" },
-    { name = "transformers" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pytest" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "aim", specifier = ">=3.29.1" },
-    { name = "anthropic", specifier = ">=0.60.0" },
-    { name = "autogen", specifier = ">=0.9.7" },
-    { name = "autogen-agentchat", specifier = ">=0.7.1" },
-    { name = "autogen-ext", extras = ["azure", "openai"], specifier = ">=0.7.1" },
-    { name = "chz", specifier = ">=0.3.0" },
-    { name = "datasets", specifier = ">=4.0.0" },
-    { name = "google-genai", specifier = ">=1.28.0" },
-    { name = "jupyter", specifier = ">=1.1.1" },
-    { name = "jupyterlab", specifier = ">=4.4.5" },
-    { name = "lab", specifier = ">=8.4" },
-    { name = "loguru", specifier = ">=0.7.3" },
-    { name = "matplotlib", specifier = ">=3.10.3" },
-    { name = "mpl-lego" },
-    { name = "numpy", specifier = ">=2.2.6" },
-    { name = "outlines", specifier = ">=1.1.1" },
-    { name = "pandas", specifier = ">=2.3.1" },
-    { name = "plotly", specifier = ">=6.3.0" },
-    { name = "pyprojroot", specifier = ">=0.3.0" },
-    { name = "pyqt6", specifier = ">=6.9.1" },
-    { name = "scipy", specifier = ">=1.15.3" },
-    { name = "seaborn", specifier = ">=0.13.2" },
-    { name = "statsmodels", specifier = ">=0.14.5" },
-    { name = "torch", specifier = ">=2.7.1" },
-    { name = "transformers", specifier = ">=4.54.1" },
-]
-
-[package.metadata.requires-dev]
-dev = [{ name = "pytest", specifier = ">=9.0.1" }]
 
 [[package]]
 name = "loguru"

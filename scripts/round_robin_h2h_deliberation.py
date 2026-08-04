@@ -9,8 +9,8 @@ from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_ext.models.anthropic import AnthropicChatCompletionClient
 
 
-from llm_deliberation.deliberation import extract_verdict
-from llm_deliberation.round_robin_delib import round_robin_delib
+from interaction_protocol.deliberation import extract_verdict
+from interaction_protocol.round_robin_delib import round_robin_delib
 from outlines import Template
 from pyprojroot import here
 from tqdm import tqdm
