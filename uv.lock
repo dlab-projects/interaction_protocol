@@ -1351,7 +1351,7 @@ requires-dist = [
     { name = "lab", specifier = ">=8.4" },
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "matplotlib", specifier = ">=3.10.3" },
-    { name = "mpl-lego" },
+    { name = "mpl-lego", specifier = ">=0.0.3" },
     { name = "numpy", specifier = ">=2.2.6" },
     { name = "outlines", specifier = ">=1.1.1" },
     { name = "pandas", specifier = ">=2.3.1" },
@@ -2038,15 +2038,15 @@ wheels = [
 
 [[package]]
 name = "mpl-lego"
-version = "0.0.2"
+version = "0.0.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "matplotlib" },
     { name = "numpy" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ac/d7/9ede79338b6e46e66e9bb4b874751080ac31eac2e5111ed183158df1ab52/mpl_lego-0.0.2.tar.gz", hash = "sha256:1ff1e008922fbd70090e4ca73e3fa6d5e4e1e5b2bf52ec774e178b968fffc7b5", size = 7385, upload-time = "2023-01-27T00:02:42.229Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/2f/c7/b3066eba265e4f468f5794af9e1b1114898d04db25d0186683a08bdf93b8/mpl_lego-0.0.3.tar.gz", hash = "sha256:fbe5c2cdb44b2720c9b558d4ea75314fc0d092551bc59d7d4d46ea86457a6d9a", size = 8737, upload-time = "2026-07-22T20:11:27.789Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/16/c6/14b764d5059e051046e60db9f6a89e44818e61f0ebbcd766a15f7acdd257/mpl_lego-0.0.2-py3-none-any.whl", hash = "sha256:140606d0bc2c3150b336473b3ad82e989ec99a7cf95f60daedcd8168fa06eb26", size = 8792, upload-time = "2023-01-27T00:02:40.192Z" },
+    { url = "https://files.pythonhosted.org/packages/b1/17/9ec9d9891cf812cf0f959e0ef0550df7d579dea7fb0e15c811f83c229522/mpl_lego-0.0.3-py3-none-any.whl", hash = "sha256:89314605b90be423294a3a12333eb09d321796b4d7a12ea18b4d0ae18fe60a01", size = 10594, upload-time = "2026-07-22T20:11:26.794Z" },
 ]
 
 [[package]]
