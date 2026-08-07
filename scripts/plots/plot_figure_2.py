@@ -1,6 +1,5 @@
 """Plot deliberation outcomes for Figure 2."""
 
-import pickle
 from collections.abc import Callable
 from pathlib import Path
 
@@ -14,6 +13,7 @@ from matplotlib.patches import Patch
 from mpl_lego.labels import apply_subplot_labels, bold_text
 from mpl_lego.style import use_latex_style
 
+from interaction_protocol.data import load_debate_data
 from interaction_protocol.utils import bootstrap_statistic_df, change_of_minds
 
 
@@ -22,14 +22,23 @@ DATA_DIR = REPO_ROOT / "data" / "analysis"
 OUTPUT_PATH = REPO_ROOT / "artifacts" / "figures" / "figure_2.pdf"
 
 SYNCHRONOUS_DATA_PATHS = (
-    DATA_DIR / "exp1_sync_h2h.pkl",
-    DATA_DIR / "exp5_sync_h2h.pkl",
-    DATA_DIR / "exp6_sync_h2h.pkl",
+    DATA_DIR / "sync_h2h_cla_vs_gpt.parquet",
+    DATA_DIR / "sync_h2h_cla_vs_gem.parquet",
+    DATA_DIR / "sync_h2h_gpt_vs_gem.parquet",
 )
 ROUND_ROBIN_DATA_PATHS = (
-    (DATA_DIR / "exp3b_round_robin_h2h.pkl", DATA_DIR / "exp3a_round_robin_h2h.pkl"),
-    (DATA_DIR / "exp2a_round_robin_h2h.pkl", DATA_DIR / "exp2b_round_robin_h2h.pkl"),
-    (DATA_DIR / "exp1b_round_robin_h2h.pkl", DATA_DIR / "exp1a_round_robin_h2h.pkl"),
+    (
+        DATA_DIR / "round_robin_h2h_cla_vs_gpt.parquet",
+        DATA_DIR / "round_robin_h2h_gpt_vs_cla.parquet",
+    ),
+    (
+        DATA_DIR / "round_robin_h2h_cla_vs_gem.parquet",
+        DATA_DIR / "round_robin_h2h_gem_vs_cla.parquet",
+    ),
+    (
+        DATA_DIR / "round_robin_h2h_gpt_vs_gem.parquet",
+        DATA_DIR / "round_robin_h2h_gem_vs_gpt.parquet",
+    ),
 )
 MODEL_PAIRS = (("Claude", "GPT"), ("Claude", "Gemini"), ("GPT", "Gemini"))
 PAIR_LABELS = tuple(f"{first} vs. {second}" for first, second in MODEL_PAIRS)
@@ -78,12 +87,6 @@ ROUND_ROBIN_COV_LIMITS = (0, 0.6)
 ROUND_ROBIN_COV_TICKS = np.arange(0, 0.61, 0.1)
 SYNCHRONOUS_COV_Y_LIMITS = (0, 6)
 ROUND_ROBIN_COV_Y_LIMITS = (0, 9)
-
-
-def load_dataframe(path: Path) -> pd.DataFrame:
-    """Load a deliberation results dataframe from a local pickle file."""
-    with path.open("rb") as file:
-        return pickle.load(file)
 
 
 def bootstrap_errors(
@@ -465,10 +468,10 @@ def main() -> None:
     plt.rcParams["axes.prop_cycle"] = cycler(color=COLOR_CYCLE)
 
     synchronous_dataframes = tuple(
-        load_dataframe(path) for path in SYNCHRONOUS_DATA_PATHS
+        load_debate_data(path) for path in SYNCHRONOUS_DATA_PATHS
     )
     round_robin_dataframes = tuple(
-        (load_dataframe(first_path), load_dataframe(second_path))
+        (load_debate_data(first_path), load_debate_data(second_path))
         for first_path, second_path in ROUND_ROBIN_DATA_PATHS
     )
 
