@@ -447,14 +447,14 @@ def build_figure(
     )
     figure.text(
         *SYNCHRONOUS_TITLE_POSITION,
-        bold_text("Synchronous Deliberation"),
+        bold_text("Synchronous Debate"),
         ha="center",
         va="top",
         fontsize=BLOCK_TITLE_SIZE,
     )
     figure.text(
         *ROUND_ROBIN_TITLE_POSITION,
-        bold_text("Round-Robin Deliberation"),
+        bold_text("Round-Robin Debate"),
         ha="center",
         va="top",
         fontsize=BLOCK_TITLE_SIZE,
