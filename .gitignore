@@ -3,6 +3,7 @@
 
 data/*
 batch_data/*
+notebooks/*
 
 # Data files
 *.pkl
