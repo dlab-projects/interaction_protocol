@@ -32,7 +32,7 @@ OUTPUT_PATH = (
     REPO_ROOT
     / "artifacts"
     / "figures"
-    / "appA_figure_value_sim_evolution_rr_2way.pdf"
+    / "appB_figure_value_sim_evolution_rr_2way.pdf"
 )
 
 DATA_PATHS = (

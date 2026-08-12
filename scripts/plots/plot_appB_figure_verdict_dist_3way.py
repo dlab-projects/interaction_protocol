@@ -13,7 +13,7 @@ from interaction_protocol.data import load_debate_data
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = REPO_ROOT / "data" / "analysis"
 OUTPUT_PATH = (
-    REPO_ROOT / "artifacts" / "figures" / "appA_figure_verdict_dist_3way.pdf"
+    REPO_ROOT / "artifacts" / "figures" / "appB_figure_verdict_dist_3way.pdf"
 )
 
 DATASETS = (

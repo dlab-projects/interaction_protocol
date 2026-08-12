@@ -1,11 +1,10 @@
-"""Plot three-way value similarity by verdict agreement (Appendix Figure 11).
+"""Plot three-way value-similarity evolution (Appendix Figure 12).
 
 Note: Unfortunately, we were unable to save the values extracted from the original
 Gemini batch run, so we have archived the point estimates and confidence intervals
 in this file. The values can be re-obtained by running the value batch analysis in
 scripts/analysis/value_classify_batch.py.
 """
-
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -21,17 +20,19 @@ from mpl_lego.style import use_latex_style
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 OUTPUT_PATH = (
-    REPO_ROOT / "artifacts" / "figures" / "appA_figure_value_sim_3way.pdf"
+    REPO_ROOT / "artifacts" / "figures" / "appB_figure_value_evolution_3way.pdf"
 )
 
 FIGURE_SIZE = (4, 2)
 DPI = 300
-SUBPLOT_HSPACE = 0.50
-AXIS_FACE_COLOR = "0.97"
+SUBPLOT_HSPACE = 0.40
+AXIS_FACE_COLOR = "0.96"
 Y_LIMITS = (0, 0.65)
 Y_TICKS = (0, 0.2, 0.4, 0.6)
 X_LIMITS = (-0.5, 1.5)
-X_POSITIONS = (0, 1)
+X_TICKS = (0, 1)
+TRAJECTORY_SHIFT = 0.10
+X_POSITIONS = (-TRAJECTORY_SHIFT, 1 - TRAJECTORY_SHIFT)
 
 MARKER_SIZE = 3
 ERROR_CAPSIZE = 3
@@ -43,7 +44,7 @@ Y_LABEL_SIZE = 9
 SUBPLOT_LABEL_SIZE = 12
 SUBPLOT_LABEL_X = -0.09
 SUBPLOT_LABEL_Y = 1.10
-SIGNIFICANCE_Y = 0.55
+SIGNIFICANCE_Y = 0.50
 BRACKET_HEIGHT = 0.01
 SAVE_PAD_INCHES = 0.10
 
@@ -68,66 +69,66 @@ class Estimate:
 
 
 @dataclass(frozen=True)
-class AgreementComparison:
-    """Agreement and disagreement estimates for one model pair."""
+class EvolutionComparison:
+    """First- and last-round estimates for one model pair."""
 
     title: str
-    agreement: Estimate
-    disagreement: Estimate
+    round_1: Estimate
+    last_round: Estimate
 
 
 # Archived outputs from round_robin_values_3way.ipynb. The original Gemini batch
 # result IDs no longer resolve, and the converted Parquet does not contain values.
 COMPARISONS = (
-    AgreementComparison(
+    EvolutionComparison(
         title="Gemini-Claude",
-        agreement=Estimate(
-            0.4424981103552532,
-            0.42976311091812613,
-            0.45529668427654757,
+        round_1=Estimate(
+            0.29823978703289045,
+            0.2830507351843558,
+            0.31293282268497785,
         ),
-        disagreement=Estimate(
-            0.3014374463503703,
-            0.2907572326975398,
-            0.3124850508489372,
+        last_round=Estimate(
+            0.405686794048863,
+            0.3895496840324426,
+            0.42086693598547054,
         ),
     ),
-    AgreementComparison(
+    EvolutionComparison(
         title="Gemini-GPT",
-        agreement=Estimate(
-            0.4420239084827614,
-            0.43019313488764865,
-            0.45328650925596065,
+        round_1=Estimate(
+            0.33794845001741547,
+            0.3227145531671393,
+            0.35366278238045473,
         ),
-        disagreement=Estimate(
-            0.3028172335600907,
-            0.29027948979591833,
-            0.31557089569160995,
+        last_round=Estimate(
+            0.4188883913021844,
+            0.40249647024431506,
+            0.43385839615365485,
         ),
     ),
-    AgreementComparison(
+    EvolutionComparison(
         title="Claude-GPT",
-        agreement=Estimate(
-            0.4947726423902894,
-            0.4851707166199813,
-            0.5042334033613446,
+        round_1=Estimate(
+            0.4352869831318107,
+            0.4178588533114395,
+            0.45465282442653127,
         ),
-        disagreement=Estimate(
-            0.3306479381876207,
-            0.3119776969429748,
-            0.3485577811371462,
+        last_round=Estimate(
+            0.46814449917898193,
+            0.45375415173906564,
+            0.4840496871423595,
         ),
     ),
 )
 
 
 def style_axis(axis: Axes) -> None:
-    """Apply the original Appendix Figure 11 axis styling."""
+    """Apply the original Appendix Figure 12 axis styling."""
     axis.set_ylim(*Y_LIMITS)
     axis.set_xlim(*X_LIMITS)
     axis.set_xticks(
-        X_POSITIONS,
-        [bold_text("Agreement"), bold_text("Disagreement")],
+        X_TICKS,
+        [bold_text("Round 1"), bold_text("Last Round")],
         ha="right",
         rotation=TICK_LABEL_ROTATION,
         fontsize=TICK_LABEL_SIZE,
@@ -138,9 +139,9 @@ def style_axis(axis: Axes) -> None:
     axis.set_facecolor(AXIS_FACE_COLOR)
 
 
-def plot_comparison(axis: Axes, comparison: AgreementComparison) -> None:
-    """Plot one pair's agreement-versus-disagreement estimates."""
-    estimates = (comparison.agreement, comparison.disagreement)
+def plot_comparison(axis: Axes, comparison: EvolutionComparison) -> None:
+    """Plot one pair's first-to-last-round value-similarity trajectory."""
+    estimates = (comparison.round_1, comparison.last_round)
     axis.errorbar(
         X_POSITIONS,
         [estimate.value for estimate in estimates],
@@ -148,7 +149,7 @@ def plot_comparison(axis: Axes, comparison: AgreementComparison) -> None:
             [estimate.lower_error for estimate in estimates],
             [estimate.upper_error for estimate in estimates],
         ],
-        fmt="o",
+        fmt="o-",
         markersize=MARKER_SIZE,
         capsize=ERROR_CAPSIZE,
         color=POINT_COLOR,
@@ -156,8 +157,8 @@ def plot_comparison(axis: Axes, comparison: AgreementComparison) -> None:
     style_axis(axis)
     add_significance_bracket_inplot(
         ax=axis,
-        x1=0,
-        x2=1,
+        x1=X_POSITIONS[0],
+        x2=X_POSITIONS[1],
         y=SIGNIFICANCE_Y,
         h=BRACKET_HEIGHT,
         label=bold_text("***"),
@@ -166,7 +167,7 @@ def plot_comparison(axis: Axes, comparison: AgreementComparison) -> None:
 
 
 def build_figure() -> plt.Figure:
-    """Build Appendix Figure 11 using the notebook's original parameters."""
+    """Build Appendix Figure 12 using the notebook's original parameters."""
     figure, axes = plt.subplots(
         1,
         3,
@@ -191,7 +192,7 @@ def build_figure() -> plt.Figure:
 
 
 def main() -> None:
-    """Build Appendix Figure 11 and save it as a PDF."""
+    """Build Appendix Figure 12 and save it as a PDF."""
     use_latex_style()
     figure = build_figure()
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)

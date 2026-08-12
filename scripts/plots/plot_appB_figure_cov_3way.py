@@ -14,7 +14,7 @@ from interaction_protocol.utils import change_of_minds
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = REPO_ROOT / "data" / "analysis"
-OUTPUT_PATH = REPO_ROOT / "artifacts" / "figures" / "appA_figure_cov_3way.pdf"
+OUTPUT_PATH = REPO_ROOT / "artifacts" / "figures" / "appB_figure_cov_3way.pdf"
 
 EXPERIMENTS = (
     ("gem_cla_gpt", DATA_DIR / "round_robin_3way_gem_cla_gpt.parquet"),
