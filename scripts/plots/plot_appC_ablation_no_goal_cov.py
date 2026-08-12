@@ -17,7 +17,7 @@ from interaction_protocol.utils import bootstrap_statistic_df, change_of_minds
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = REPO_ROOT / "data" / "analysis"
-OUTPUT_PATH = REPO_ROOT / "artifacts" / "figures" / "appB_ablation_no_goal_cov.pdf"
+OUTPUT_PATH = REPO_ROOT / "artifacts" / "figures" / "appC_ablation_no_goal_cov.pdf"
 
 ORIGINAL_DATA_PATHS = (
     DATA_DIR / "sync_h2h_cla_vs_gpt.parquet",
