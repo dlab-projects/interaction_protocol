@@ -8,10 +8,12 @@ import pandas as pd
 from cycler import cycler
 from matplotlib.axes import Axes
 from matplotlib.lines import Line2D
-from mpl_lego.labels import bold_text
+from mpl_lego.labels import add_significance_bracket_inplot, bold_text
 from mpl_lego.style import use_latex_style
+from statsmodels.stats.proportion import proportions_ztest
 
 from interaction_protocol.data import load_debate_data
+from interaction_protocol.plotting import significance_label
 from interaction_protocol.utils import bootstrap_statistic_df, change_of_minds
 
 
@@ -64,6 +66,11 @@ MARKER_SIZE = 5
 MARKER_EDGE_COLOR = "black"
 MARKER_EDGE_WIDTH = 0.4
 ERROR_CAPSIZE = 3
+SIGNIFICANCE_Y = ((0.33, 0.06), (0.43, 0.38), (0.045, 0.46))
+SIGNIFICANCE_BRACKET_HEIGHT = 0.007
+SIGNIFICANCE_TEXT_OFFSET = 0.005
+SIGNIFICANCE_LINE_WIDTH = 1
+SIGNIFICANCE_SIZE = 9
 
 TITLE_SIZE = 11
 AXIS_LABEL_SIZE = 11
@@ -90,6 +97,21 @@ def bootstrap_change_rate(
     )
 
 
+def change_rate_p_value(
+    original: pd.DataFrame,
+    ablated: pd.DataFrame,
+    verdict_column: str,
+) -> float:
+    """Compare original and ablated change rates with a proportion z-test."""
+    counts = [
+        change_of_minds(original[verdict_column]),
+        change_of_minds(ablated[verdict_column]),
+    ]
+    observations = [len(original), len(ablated)]
+    _, p_value = proportions_ztest(counts, observations)
+    return float(p_value)
+
+
 def plot_model_change_rates(
     axis: Axes,
     original: pd.DataFrame,
@@ -98,6 +120,7 @@ def plot_model_change_rates(
     model: str,
     verdict_column: str,
     x_offset: float,
+    significance_y: float,
 ) -> None:
     """Plot one model's original and no-goal change-of-verdict rates."""
     estimates = (
@@ -123,6 +146,19 @@ def plot_model_change_rates(
         markeredgecolor=MARKER_EDGE_COLOR,
         markeredgewidth=MARKER_EDGE_WIDTH,
         capsize=ERROR_CAPSIZE,
+    )
+    p_value = change_rate_p_value(original, ablated, verdict_column)
+    add_significance_bracket_inplot(
+        ax=axis,
+        x1=X_POSITIONS[0] + x_offset,
+        x2=X_POSITIONS[1] + x_offset,
+        y=significance_y,
+        h=SIGNIFICANCE_BRACKET_HEIGHT,
+        text_offset=SIGNIFICANCE_TEXT_OFFSET,
+        color=MODEL_COLORS[model],
+        lw=SIGNIFICANCE_LINE_WIDTH,
+        fontsize=SIGNIFICANCE_SIZE,
+        label=bold_text(significance_label(p_value)),
     )
 
 
@@ -152,7 +188,15 @@ def build_figure(
     )
     figure.subplots_adjust(wspace=SUBPLOT_WSPACE)
 
-    for panel_index, (axis, original, ablated, models, title, offsets) in enumerate(
+    for panel_index, (
+        axis,
+        original,
+        ablated,
+        models,
+        title,
+        offsets,
+        significance_positions,
+    ) in enumerate(
         zip(
             axes,
             originals,
@@ -160,11 +204,16 @@ def build_figure(
             MODEL_PAIRS,
             PANEL_TITLES,
             X_OFFSETS,
+            SIGNIFICANCE_Y,
             strict=True,
         )
     ):
-        for model, verdict_column, x_offset in zip(
-            models, VERDICT_COLUMNS, offsets, strict=True
+        for model, verdict_column, x_offset, significance_y in zip(
+            models,
+            VERDICT_COLUMNS,
+            offsets,
+            significance_positions,
+            strict=True,
         ):
             plot_model_change_rates(
                 axis,
@@ -173,6 +222,7 @@ def build_figure(
                 model=model,
                 verdict_column=verdict_column,
                 x_offset=x_offset,
+                significance_y=significance_y,
             )
         style_axis(axis, title)
         if panel_index == 0:
