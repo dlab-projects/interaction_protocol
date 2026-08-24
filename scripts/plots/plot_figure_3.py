@@ -15,7 +15,7 @@ from interaction_protocol.utils import first_round_verdicts
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DATA_DIR = REPO_ROOT / "data" / "analysis"
+DATA_DIR = REPO_ROOT / "data" / "experiments"
 OUTPUT_PATH = REPO_ROOT / "artifacts" / "figures" / "figure_3.pdf"
 
 DATA_PATHS = (

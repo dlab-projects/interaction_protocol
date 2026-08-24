@@ -16,7 +16,7 @@ from interaction_protocol.utils import bootstrap_statistic_df, change_of_minds
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DATA_DIR = REPO_ROOT / "data" / "analysis"
+DATA_DIR = REPO_ROOT / "data" / "experiments"
 OUTPUT_PATH = (
     REPO_ROOT / "artifacts" / "figures" / "appE_deepseek_round_robin_cov.pdf"
 )

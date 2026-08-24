@@ -5,6 +5,7 @@ data/*
 batch_data/*
 notebooks/*
 tmp/*
+scripts/converters/
 
 # Data files
 *.pkl
