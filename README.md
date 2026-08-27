@@ -1,4 +1,4 @@
-# [Interaction Protocol Shapes Moral Judgment in Multi-Agent Debate](https://arxiv.org/abs/2510.10002)
+# Interaction Protocol Shapes Moral Judgment in Multi-Agent Debate
 
 <p align="center">
   Pratik S. Sachdeva &nbsp;·&nbsp; Tom van Nuenen<br>
