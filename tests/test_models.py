@@ -7,6 +7,7 @@ from interaction_protocol.models import (
     MODEL_FITTERS,
     SENSITIVITY_MODEL_FITTERS,
     DebateExperiment,
+    ModelMatrices,
     PaperModelConfig,
     fit_debate_random_intercept_model,
     fit_paper_model,
@@ -49,6 +50,15 @@ def test_preprocess_builds_shared_model_matrices():
     np.testing.assert_array_equal(
         matrices.exposure_within_mat[-1], [1, 0, 0, 0, 0]
     )
+
+
+def test_model_matrices_round_trip_through_legacy_dictionary():
+    matrices = example_matrices()
+
+    restored = ModelMatrices.from_legacy_dict(matrices.as_legacy_dict())
+
+    for field in ModelMatrices.__dataclass_fields__:
+        np.testing.assert_array_equal(getattr(restored, field), getattr(matrices, field))
 
 
 def test_paper_model_is_default_and_fits_common_matrices():

@@ -113,6 +113,25 @@ class ModelMatrices:
             "debate_idx": self.debate_idx,
         }
 
+    @classmethod
+    def from_legacy_dict(cls, data: dict[str, np.ndarray]) -> "ModelMatrices":
+        """Construct matrices from the dictionary schema used by older scripts."""
+        n_observations = len(data["y"])
+        return cls(
+            y=data["y"],
+            model_idx=data["model_idx"],
+            dilemma_idx=data["dilemma_idx"],
+            round_idx=data["round_idx"],
+            speaker_pos=data["speaker_pos"],
+            same_prev_mat=data["same_prev_mat"],
+            exposure_prev_mat=data["E_prev_mat"],
+            exposure_within_mat=data["E_within_mat"],
+            is_sync=data["is_sync"],
+            debate_idx=data.get(
+                "debate_idx", np.zeros(n_observations, dtype=np.int64)
+            ),
+        )
+
 
 @dataclass(frozen=True)
 class FitConfig:
@@ -1586,18 +1605,7 @@ def fit_map_split_per_model(exp, **kwargs):
     module, matching the contract used by ``notebooks/fit_model.ipynb``.
     New code should call :func:`fit_paper_model` with :class:`ModelMatrices`.
     """
-    matrices = ModelMatrices(
-        y=exp["y"],
-        model_idx=exp["model_idx"],
-        dilemma_idx=exp["dilemma_idx"],
-        round_idx=exp["round_idx"],
-        speaker_pos=exp["speaker_pos"],
-        same_prev_mat=exp["same_prev_mat"],
-        exposure_prev_mat=exp["E_prev_mat"],
-        exposure_within_mat=exp["E_within_mat"],
-        is_sync=exp["is_sync"],
-        debate_idx=exp.get("debate_idx", np.zeros(len(exp["y"]), dtype=np.int64)),
-    )
+    matrices = ModelMatrices.from_legacy_dict(exp)
     config = PaperModelConfig(
         learning_rate=kwargs.pop("lr", 1e-2),
         epochs=kwargs.pop("epochs", 60),
