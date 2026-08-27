@@ -8,7 +8,7 @@ from interaction_protocol.data import load_debate_data
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DATA_DIR = REPO_ROOT / "data" / "analysis"
+DATA_DIR = REPO_ROOT / "data" / "experiments"
 OUTPUT_DIR = REPO_ROOT / "artifacts" / "tables"
 MARKDOWN_OUTPUT_PATH = OUTPUT_DIR / "appC_no_consensus_rates.md"
 LATEX_OUTPUT_PATH = OUTPUT_DIR / "appC_no_consensus_rates.tex"
