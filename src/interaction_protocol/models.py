@@ -887,6 +887,7 @@ def _fit_comparison_model(
     *,
     penalized: bool = True,
     verbose: bool = False,
+    observation_mask: np.ndarray | None = None,
 ) -> ModelFit:
     """Fit one declared model by full-batch L-BFGS.
 
@@ -895,6 +896,9 @@ def _fit_comparison_model(
     With ``penalized=False``, the optimizer targets likelihood alone and the
     resulting fit supports standard AIC. No optimizer-level weight decay is
     used in either case, so the penalty is completely explicit and auditable.
+    When ``observation_mask`` is supplied, only selected rows enter the loss,
+    while the full model, dilemma, and debate dimensions remain available for
+    held-out prediction.
     """
     config = config or PaperModelConfig()
     if specification.debate_random_intercept and not penalized:
@@ -904,17 +908,41 @@ def _fit_comparison_model(
         )
     torch.manual_seed(config.seed)
     device = config.device
-    y = torch.as_tensor(matrices.y, dtype=torch.long, device=device)
-    model_idx = torch.as_tensor(matrices.model_idx, dtype=torch.long, device=device)
-    dilemma_idx = torch.as_tensor(matrices.dilemma_idx, dtype=torch.long, device=device)
-    same_prev = torch.as_tensor(matrices.same_prev_mat, dtype=torch.float32, device=device)
+    if observation_mask is None:
+        observation_mask = np.ones(matrices.n_observations, dtype=bool)
+    else:
+        observation_mask = np.asarray(observation_mask, dtype=bool)
+        if observation_mask.shape != (matrices.n_observations,):
+            raise ValueError("observation_mask must have one value per observation")
+    n_fit_observations = int(observation_mask.sum())
+    if n_fit_observations == 0:
+        raise ValueError("observation_mask must select at least one observation")
+
+    y = torch.as_tensor(
+        matrices.y[observation_mask], dtype=torch.long, device=device
+    )
+    model_idx = torch.as_tensor(
+        matrices.model_idx[observation_mask], dtype=torch.long, device=device
+    )
+    dilemma_idx = torch.as_tensor(
+        matrices.dilemma_idx[observation_mask], dtype=torch.long, device=device
+    )
+    same_prev = torch.as_tensor(
+        matrices.same_prev_mat[observation_mask], dtype=torch.float32, device=device
+    )
     exposure_prev = torch.as_tensor(
-        matrices.exposure_prev_mat, dtype=torch.float32, device=device
+        matrices.exposure_prev_mat[observation_mask],
+        dtype=torch.float32,
+        device=device,
     )
     exposure_within = torch.as_tensor(
-        matrices.exposure_within_mat, dtype=torch.float32, device=device
+        matrices.exposure_within_mat[observation_mask],
+        dtype=torch.float32,
+        device=device,
     )
-    debate_idx = torch.as_tensor(matrices.debate_idx, dtype=torch.long, device=device)
+    debate_idx = torch.as_tensor(
+        matrices.debate_idx[observation_mask], dtype=torch.long, device=device
+    )
     n_debates = int(matrices.debate_idx.max()) + 1
     model = ComparisonModel(
         matrices.n_models,
@@ -957,7 +985,7 @@ def _fit_comparison_model(
             penalty = penalty + model.debate_raw.pow(2).sum() / (
                 2 * config.sigma_debate**2
             )
-        return penalty / matrices.n_observations
+        return penalty / n_fit_observations
 
     def loss_value():
         """Evaluate the differentiable full-data fitting objective."""
@@ -1013,7 +1041,7 @@ def _fit_comparison_model(
         name=specification.name,
         model=model,
         config=config,
-        n_observations=matrices.n_observations,
+        n_observations=n_fit_observations,
         n_parameters=_identifiable_parameter_count(model),
         epochs_fit=iterations,
         negative_log_likelihood=negative_log_likelihood,
@@ -1076,7 +1104,12 @@ def fit_split_global_conformity_model(
 
 
 def fit_paper_comparison_model(
-    matrices, config=None, *, penalized=True, verbose=False
+    matrices,
+    config=None,
+    *,
+    penalized=True,
+    verbose=False,
+    observation_mask=None,
 ):
     """Fit the paper specification with model-specific conformity terms."""
     return _fit_comparison_model(
@@ -1085,6 +1118,7 @@ def fit_paper_comparison_model(
         config,
         penalized=penalized,
         verbose=verbose,
+        observation_mask=observation_mask,
     )
 
 
@@ -1096,7 +1130,12 @@ def fit_interaction_model(matrices, config=None, *, penalized=True, verbose=Fals
 
 
 def fit_debate_random_intercept_model(
-    matrices, config=None, *, penalized=True, verbose=False
+    matrices,
+    config=None,
+    *,
+    penalized=True,
+    verbose=False,
+    observation_mask=None,
 ):
     """Fit the paper model plus penalized debate-by-verdict random effects.
 
@@ -1110,6 +1149,7 @@ def fit_debate_random_intercept_model(
         config,
         penalized=penalized,
         verbose=verbose,
+        observation_mask=observation_mask,
     )
 
 
