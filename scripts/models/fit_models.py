@@ -36,7 +36,7 @@ from interaction_protocol.models import (
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DATA_DIR = REPO_ROOT / "data" / "analysis"
+DATA_DIR = REPO_ROOT / "data" / "experiments"
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "artifacts" / "models"
 
 # The tuple order mirrors the experiment order used by the original fitting
